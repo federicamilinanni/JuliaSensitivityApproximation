@@ -81,7 +81,7 @@ function runtimePerDimension(startDim, endDim, stepSize, nIter, tspan)
 
     pl = plot(startDim:stepSize:endDim, [avgTimeFS, avgTimePBS, avgTimeExp],
         title = "Random Linear System - Average runtime vs dimension", label = ["FS" "PBSR" "Exp"], palette=:grays1, linestyle=:auto,
-        xlabel = "Dimension", ylabel="Average runtime [s]");
+        xlabel = "Dimension", ylabel="Average runtime [s]", legend=:topleft);
 
     savefig(pl, "./output/RandomLinearSystem-avgRuntime.pdf")
 
