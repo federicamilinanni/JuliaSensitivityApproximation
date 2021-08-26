@@ -1,5 +1,4 @@
 include("SensitivityAlgorithms.jl")
-using Statistics
 
 abstolset = 1e-6;
 reltolset = 1e-5;

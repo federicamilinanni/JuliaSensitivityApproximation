@@ -1,4 +1,4 @@
-using DifferentialEquations, Sundials, LinearAlgebra, DiffEqSensitivity, Plots, Plots.PlotMeasures, Colors
+using DifferentialEquations, Sundials, LinearAlgebra, DiffEqSensitivity, Plots, Plots.PlotMeasures, Colors, Statistics
 pyplot()
 gr()
 include("plotFunctions.jl")
