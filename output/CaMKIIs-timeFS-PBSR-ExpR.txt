@@ -1,0 +1,5 @@
+CaMKIIs model
+Average time of Forward Sensitibity, PBS with refinement (no Exponential algorithm), Exp algorithm with refienement
+FS 	1.8722500801086426
+PBSR 	111.13050484657288
+ExpR 	283.0086441040039

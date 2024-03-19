@@ -1,0 +1,5 @@
+PKA model
+Average time of Forward Sensitibity, PBS with refinement (no Exponential algorithm), Exp algorithm with refienement
+FS 	0.057884931564331055
+PBSR 	7.713667869567871
+ExpR 	18.87783694267273
