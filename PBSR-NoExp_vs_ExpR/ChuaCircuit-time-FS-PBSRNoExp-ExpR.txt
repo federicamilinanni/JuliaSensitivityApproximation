@@ -1,0 +1,6 @@
+Chua Circuit model
+Average time of Forward Sensitibity, PBS with refinement (no Exponential algorithm), Exp algorithm with refienement
+Numeber of iterations = 100
+FS 	0.000492095947265625
+PBSRNoExp 	0.008773088455200195
+ExpR 	0.02465987205505371
