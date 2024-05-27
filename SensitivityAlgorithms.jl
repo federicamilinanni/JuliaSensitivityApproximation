@@ -1,16 +1,26 @@
-using DifferentialEquations, Sundials, LinearAlgebra, DiffEqSensitivity, Plots, Plots.PlotMeasures, Colors, Statistics
+using Sundials, LinearAlgebra, Plots, Plots.PlotMeasures, Colors, Statistics
 pyplot()
 gr()
 include("plotFunctions.jl")
 
-function ForwardSensitivityAlgorithm(f_ODE, x0, tspan, p)
-    probFS = ODEForwardSensitivityProblem(f_ODE, x0, tspan, p);
-    start = time();
-    solFS = solve(probFS, CVODE_BDF(), abstol=abstolset, reltol=reltolset);
-    timeFS = time() - start;
-    S_FS = extract_local_sensitivities(solFS,true)[2];
-    return S_FS, timeFS, solFS
+function relError(f_ODE, x0, tspan, p, S)
+    h = 1e-6;
+    prob_plus = ODEProblem(f_ODE, x0, tspan, p+h);
+    prob_minus = ODEProblem(f_ODE, x0, tspan, p-h);
+    solution_plus = solve(prob_plus, CVODE_BDF(), abstol=abstolset, reltol=reltolset);
+    solution_minus = solve(prob_minus, CVODE_BDF(), abstol=abstolset, reltol=reltolset);
+    relErr = norm((solution_plus.x - solution_minus.x) - 2*sum(S,2)*h)/(norm(S))
+    return Err
 end
+
+#function ForwardSensitivityAlgorithm(f_ODE, x0, tspan, p)
+#    probFS = ODEForwardSensitivityProblem(f_ODE, x0, tspan, p);
+#    start = time();
+#    solFS = solve(probFS, CVODE_BDF(), abstol=abstolset, reltol=reltolset);
+#    timeFS = time() - start;
+#    S_FS = extract_local_sensitivities(solFS,true)[2];
+#    return S_FS, timeFS, solFS
+#end
 
 function PBSAlgorithm(f_ODE, x0, tspan, p)
     prob = ODEProblem(f_ODE, x0, tspan, p);
@@ -37,29 +47,29 @@ function timeSensitivityAlgorithms(modelName, tspan, nIter)
     timePBSvec = [];
     timeExpvec = [];
 
-    S_FS, timeFS, solFS = ForwardSensitivityAlgorithm(f_ODE, x0, tspan, p);
+    #S_FS, timeFS, solFS = ForwardSensitivityAlgorithm(f_ODE, x0, tspan, p);
     S_PBS, timePBS, sol, timestepsExp, N_intervals = PBSAlgorithm(f_ODE, x0, tspan, p);
     S_Exp, timeExp, sol = expAlgorithm(f_ODE, x0, tspan, p);
     for i = 1:nIter
-        S_FS, timeFS, solFS = ForwardSensitivityAlgorithm(f_ODE, x0, tspan, p);
+        #S_FS, timeFS, solFS = ForwardSensitivityAlgorithm(f_ODE, x0, tspan, p);
         S_PBS, timePBS, sol, timestepsExp = PBSAlgorithm(f_ODE, x0, tspan, p);
         S_Exp, timeExp, sol = expAlgorithm(f_ODE, x0, tspan, p);
 
-        push!(timeFSvec, timeFS);
+        #push!(timeFSvec, timeFS);
         push!(timePBSvec, timePBS);
         push!(timeExpvec, timeExp);
     end
 
     N = length(x0);         #Number of state variables[]
     D = length(p);          #Number of parameters
-    S_FS_interp = interpolateSensitivityMatrix(solFS, sol.t, N, D);
-    pl = PlotSensitivityError(sol, S_PBS, S_FS_interp, S_Exp, 1, length(sol.t), Title, timestepsExp)
+    #S_FS_interp = interpolateSensitivityMatrix(solFS, sol.t, N, D);
+    pl = PlotSensitivityError(sol, S_PBS, 0.5*(S_PBS+S_Exp), S_Exp, 1, length(sol.t), Title, timestepsExp)
     savefig(pl, string("./output/", modelName, "-relerr", ".pdf"))
 
-    avgFS = mean(timeFSvec);
+    #avgFS = mean(timeFSvec);
     avgPBS = mean(timePBSvec);
     avgExp = mean(timeExpvec);
-    return avgFS, avgPBS, avgExp
+    return avgPBS, avgExp
 end
 
 function SensitivityMatrixByPBS(sol, p, expAlg)
@@ -128,3 +138,4 @@ function transitionMatrixApproximation(J_prev, J_curr, t_prev, t_curr)
     N = size(J_prev,1);
     return Matrix(1.0*I,N,N) + (J_curr + J_prev)*(t_curr - t_prev)/2 +  ((J_curr + J_prev)*(t_curr - t_prev)^2/4) * J_curr;
 end
+
