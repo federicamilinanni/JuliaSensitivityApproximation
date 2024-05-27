@@ -17,7 +17,6 @@ Title = string(modelName, " Model");
 
 ### Parameter 1 ###
 p = p1
-S_FS, timeFS, solFS = ForwardSensitivityAlgorithm(f_ODE, x0, tspan, p);
 S_PBS, timePBS, sol, timestepsExp, N_intervals, timeExpAlgSteadyState, timeExpAlgN_intBound = PBSAlgorithm(f_ODE, x0, tspan, p);
 S_Exp, timeExp, sol = expAlgorithm(f_ODE, x0, tspan, p);
 S_FS_interp = interpolateSensitivityMatrix(solFS, sol.t, N, D);
@@ -27,7 +26,6 @@ savefig(pl_rel_err_1, string("./RelativeErrors/PKA-param1-relerr.pdf"))
 
 ### Parameter 2 ###
 p = p2
-S_FS, timeFS, solFS = ForwardSensitivityAlgorithm(f_ODE, x0, tspan, p);
 S_PBS, timePBS, sol, timestepsExp, N_intervals, timeExpAlgSteadyState, timeExpAlgN_intBound = PBSAlgorithm(f_ODE, x0, tspan, p);
 S_Exp, timeExp, sol = expAlgorithm(f_ODE, x0, tspan, p);
 S_FS_interp = interpolateSensitivityMatrix(solFS, sol.t, N, D);
@@ -37,7 +35,6 @@ savefig(pl_rel_err_2, string("./RelativeErrors/PKA-param2-relerr.pdf"))
 
 ### Parameter 3 ###
 p = p3
-S_FS, timeFS, solFS = ForwardSensitivityAlgorithm(f_ODE, x0, tspan, p);
 S_PBS, timePBS, sol, timestepsExp, N_intervals, timeExpAlgSteadyState, timeExpAlgN_intBound = PBSAlgorithm(f_ODE, x0, tspan, p);
 S_Exp, timeExp, sol = expAlgorithm(f_ODE, x0, tspan, p);
 S_FS_interp = interpolateSensitivityMatrix(solFS, sol.t, N, D);
@@ -58,7 +55,6 @@ N = length(x0);         #Number of state variables
 D = length(p);          #Number of parameters
 Title = string(modelName, " Model");
 
-S_FS, timeFS, solFS = ForwardSensitivityAlgorithm(f_ODE, x0, tspan, p);
 S_PBS, timePBS, sol, timestepsExp, N_intervals, timeExpAlgSteadyState, timeExpAlgN_intBound = PBSAlgorithm(f_ODE, x0, tspan, p);
 S_Exp, timeExp, sol = expAlgorithm(f_ODE, x0, tspan, p);
 S_FS_interp = interpolateSensitivityMatrix(solFS, sol.t, N, D);
@@ -79,7 +75,6 @@ N = length(x0);         #Number of state variables
 D = length(p);          #Number of parameters
 Title = string(modelName, " Model");
 
-S_FS, timeFS, solFS = ForwardSensitivityAlgorithm(f_ODE, x0, tspan, p);
 S_PBS, timePBS, sol, timestepsExp, N_intervals, timeExpAlgSteadyState, timeExpAlgN_intBound = PBSAlgorithm(f_ODE, x0, tspan, p);
 S_Exp, timeExp, sol = expAlgorithm(f_ODE, x0, tspan, p);
 S_FS_interp = interpolateSensitivityMatrix(solFS, sol.t, N, D);

@@ -9,6 +9,36 @@ function interpolateSensitivityMatrix(solFS, timeGrid, N, D)
     return S_FS_interp
 end
 
+function rectangle(bottom_left,top_right)
+  r = Shape([bottom_left[1], bottom_left[1], top_right[1], top_right[1]], [bottom_left[2], top_right[2], top_right[2], bottom_left[2]])
+  return r
+end
+
+function rectanglesFromIndicator(ind,t,val,min_y,max_y)
+	MinT=minimum(t);
+	MaxT=MinT;
+	rect=[]; #Array{Shape{Int64, Float64}};
+	n=length(t)-1;
+	for j in 1:n
+		#print(ind[j],"|",MinT,"|",MaxT,"\n");
+		if (ind[j]==val)
+			MaxT=t[j+1];
+		elseif (MaxT>MinT)
+			#print("pushing a rectangle to array\n");
+			push!(rect,rectangle([MinT, min_y],[MaxT, max_y]));
+			MinT=t[j];
+			MaxT=t[j];
+		else
+			MaxT=t[j];
+			MinT=t[j];
+		end
+	end
+	if (MaxT>MinT)
+		push!(rect,rectangle([MinT, min_y],[MaxT, max_y]));
+	end
+	return rect
+end
+
 function PlotSensitivityError(sol, S_PBS, S_FS_interp, S_Exp, Ti, Tf, Title, tsteps_exp)
     pl = plot(Ti:Tf,[map(t->(opnorm(S_PBS[t][:,:] - S_FS_interp[t][:,:])/opnorm(S_FS_interp[t][:,:])),Ti:Tf),
                 map(t->(opnorm(S_Exp[t][:,:] - S_FS_interp[t][:,:])/opnorm(S_FS_interp[t][:,:])),Ti:Tf)],
