@@ -114,7 +114,7 @@ function SensitivityMatrixByPBS(sol, p, expAlg)
         J_p_next = Jacobian_p(x_next, p, t_next);
         J_x_norm = opnorm(J_x_curr);
 
-        if  expAlg || opnorm(J_x_next-J_x_curr)/(J_x_norm) < 1e-4 || (t_next - t_curr)*J_x_norm > 1e1
+        if  (expAlg || opnorm(J_x_next-J_x_curr)/(J_x_norm) < 1e-4 || (t_next - t_curr)*J_x_norm > 1e1) && maximum(real(eigvals(J_x_curr))) < 0
             tmp = (J_x_curr - diagm(1e-10*ones(N)))\J_p_curr;
             push!(S_PBS, exp((t_next - t_curr) * J_x_curr) * (S_PBS[end] + tmp) - tmp);
             push!(timeExpAlgorithm, t);
