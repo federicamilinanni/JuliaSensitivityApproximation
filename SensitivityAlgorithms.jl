@@ -3,21 +3,31 @@ pyplot()
 gr()
 include("plotFunctions.jl")
 
+function runif(n,a,b)
+	r=a.+rand(n).*(b-a);
+ return r
+end
+
 function relError(f_ODE, x0, tspan, p, sol, S)
-    np = length(p)
-    h = 1e-7.+rand(np,1).*1e-6;
-    prob_plus = ODEProblem(f_ODE, x0, tspan, p+h);
-    prob_minus = ODEProblem(f_ODE, x0, tspan, p-h);
-    solution_plus = solve(prob_plus, CVODE_BDF(), abstol=abstolset, reltol=reltolset);
-    solution_minus = solve(prob_minus, CVODE_BDF(), abstol=abstolset, reltol=reltolset);
+    np = length(p);
     t=sol.t;
-		yp=solution_plus(t)
-		ym=solution_minus(t)
-    relErr=zeros(length(t))
-    for i in 1:length(t)
-      relErr[i] += norm((yp.u[i] - ym.u[i]) - 2*S[i]*h)/(norm(S))
+    relErr=zeros(length(t));
+    N=5;
+    for j in 1:N
+        h = runif(np,1e-5,1e-4); # \in [1e-5,1e-4]
+        prob_plus = ODEProblem(f_ODE, x0, tspan, p+h);
+        prob_minus = ODEProblem(f_ODE, x0, tspan, p-h);
+        solution_plus = solve(prob_plus, CVODE_BDF(), abstol=abstolset, reltol=reltolset);
+        solution_minus = solve(prob_minus, CVODE_BDF(), abstol=abstolset, reltol=reltolset);
+
+        yp=solution_plus(t);
+        ym=solution_minus(t);
+
+        for i in 1:length(t)
+            relErr[i] += norm((yp.u[i] - ym.u[i]) - 2*S[i]*h)/(norm(yp.u[i] - ym.u[i]));
+        end
     end
-    return relErr
+    return relErr./N
 end
 
 #function ForwardSensitivityAlgorithm(f_ODE, x0, tspan, p)
