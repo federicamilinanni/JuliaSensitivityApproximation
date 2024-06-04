@@ -1,4 +1,4 @@
-using DifferentialEquations, Sundials, LinearAlgebra, DiffEqSensitivity, Plots, Plots.PlotMeasures, Colors, Statistics
+using DifferentialEquations, Sundials, LinearAlgebra, Plots, Plots.PlotMeasures, Colors, Statistics
 pyplot()
 gr()
 include("plotFunctions.jl")
@@ -16,16 +16,16 @@ function PBSAlgorithm(f_ODE, x0, tspan, p)
     prob = ODEProblem(f_ODE, x0, tspan, p);
     start = time();
     sol = solve(prob, CVODE_BDF(), abstol=abstolset, reltol=reltolset);
-    S_PBS, timeStepsExp, N_intervals, timeExpAlgSteadyState, timeExpAlgN_intBound = SensitivityMatrixByPBS(sol, p, false);
+    S_PBS, indicator = SensitivityMatrixByPBS(sol, p, false);
     timePBS = time() - start;
-    return S_PBS, timePBS, sol, timeStepsExp, N_intervals, timeExpAlgSteadyState, timeExpAlgN_intBound
+    return S_PBS, timePBS, sol, indicator
 end
 
 function expAlgorithm(f_ODE, x0, tspan, p)
     prob = ODEProblem(f_ODE, x0, tspan, p);
     start = time();
     sol = solve(prob, CVODE_BDF(), abstol=abstolset, reltol=reltolset);
-    S_exp, ~, ~ = SensitivityMatrixByPBS(sol, p, true);
+    S_exp, ~ = SensitivityMatrixByPBS(sol, p, true);
     timeExp = time() - start;
     return S_exp, timeExp, sol
 end
@@ -82,6 +82,7 @@ function SensitivityMatrixByPBS(sol, p, expAlg)
     x_curr = sol.u[1];
     J_x_curr = Jacobian_x(x_curr, p, t_curr);
     J_p_curr = Jacobian_p(x_curr, p, t_curr);
+    indicator = Int[];
 
     for t = 1:T-1
         t_next = sol.t[t+1];
@@ -91,6 +92,7 @@ function SensitivityMatrixByPBS(sol, p, expAlg)
         J_x_norm = opnorm(J_x_curr);
 
         if  expAlg || opnorm(J_x_next-J_x_curr)/(J_x_norm) < 1e-4 #|| (t_next - t_curr)*J_x_norm > 1e1
+            push!(indicator,1);
             tmp = (J_x_curr - diagm(1e-10*ones(N)))\J_p_curr;
             push!(S_PBS, exp((t_next - t_curr) * J_x_curr) * (S_PBS[end] + tmp) - tmp);
             push!(timeExpAlgorithm, t);
@@ -100,6 +102,7 @@ function SensitivityMatrixByPBS(sol, p, expAlg)
             push!(S_PBS, exp((t_next - t_curr) * J_x_curr) * (S_PBS[end] + tmp) - tmp);
             push!(timeExpAlgorithm, t);
             push!(timeExpAlgN_intBound, t);
+            push!(indicator,2);
         else
             max_delta_t = 1/(10*J_x_norm);
             n_int = ceil((t_next - t_curr)/max_delta_t);
@@ -121,6 +124,7 @@ function SensitivityMatrixByPBS(sol, p, expAlg)
                 J_x_i = J_x_f;
                 J_p_i = J_p_f;
             end
+            push!(indicator,3);
             push!(N_intervals, n_int);
             push!(S_PBS, S_i);
         end
@@ -131,7 +135,7 @@ function SensitivityMatrixByPBS(sol, p, expAlg)
         x_curr = x_next;
 
     end
-    return S_PBS, timeExpAlgorithm, N_intervals, timeExpAlgSteadyState, timeExpAlgN_intBound
+    return S_PBS, indicator
 end
 
 function transitionMatrixApproximation(J_prev, J_curr, t_prev, t_curr)

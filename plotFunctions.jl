@@ -14,7 +14,7 @@ function rectangle(bottom_left,top_right)
   return r
 end
                                        #1
-function rectanglesFromIndicator(ind,t,val,min_y,max_y)
+function rectanglesFromIndicator(ind,t,val,min_y,max_y,min_x,max_x)
   MinT=minimum(t); # 1:n
   MaxT=MinT;
   rect=[]; #Array{Shape{Int64, Float64}};
@@ -24,7 +24,7 @@ function rectanglesFromIndicator(ind,t,val,min_y,max_y)
     if (I==val)
       MaxT=t[j]
     elseif (MaxT>MinT)
-      push!(rect,rectangle([MinT, min_y],[MaxT, max_y]));
+      push!(rect,rectangle([max(MinT,min_x), min_y],[min(MaxT,max_x), max_y]));
       MaxT=t[j]
       MinT=t[j]
     else
@@ -34,7 +34,7 @@ function rectanglesFromIndicator(ind,t,val,min_y,max_y)
     I=ind[j];
   end
   if (MaxT>MinT)
-    push!(rect,rectangle([MinT, min_y],[MaxT, max_y]));
+    push!(rect,rectangle([max(MinT,min_x), min_y],[min(MaxT,max_x), max_y]));
   end
   return rect
 end
