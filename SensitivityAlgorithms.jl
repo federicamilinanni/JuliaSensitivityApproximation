@@ -16,9 +16,9 @@ function PBSAlgorithm(f_ODE, x0, tspan, p)
     prob = ODEProblem(f_ODE, x0, tspan, p);
     start = time();
     sol = solve(prob, CVODE_BDF(), abstol=abstolset, reltol=reltolset);
-    S_PBS, timeStepsExp, N_intervals = SensitivityMatrixByPBS(sol, p, false);
+    S_PBS, timeStepsExp, N_intervals, timeExpAlgSteadyState, timeExpAlgN_intBound = SensitivityMatrixByPBS(sol, p, false);
     timePBS = time() - start;
-    return S_PBS, timePBS, sol, timeStepsExp, N_intervals
+    return S_PBS, timePBS, sol, timeStepsExp, N_intervals, timeExpAlgSteadyState, timeExpAlgN_intBound
 end
 
 function expAlgorithm(f_ODE, x0, tspan, p)
@@ -72,24 +72,35 @@ function SensitivityMatrixByPBS(sol, p, expAlg)
     push!(S_PBS, zeros(Float64, N, D));
 
     timeExpAlgorithm = Int[];
+
+    timeExpAlgSteadyState = Int[];
+    timeExpAlgN_intBound = Int[];
+
     N_intervals = [];
 
     t_curr = sol.t[1];
     x_curr = sol.u[1];
     J_x_curr = Jacobian_x(x_curr, p, t_curr);
     J_p_curr = Jacobian_p(x_curr, p, t_curr);
+    J_x_norm = opnorm(J_x_curr);
+    J_p_norm = opnorm(J_p_curr)
 
     for t = 1:T-1
         t_next = sol.t[t+1];
         x_next = sol.u[t+1];
         J_x_next = Jacobian_x(x_next, p, t_next);
         J_p_next = Jacobian_p(x_next, p, t_next);
-        J_x_norm = opnorm(J_x_curr);
 
-        if  expAlg || opnorm(J_x_next-J_x_curr)/(J_x_norm) < 1e-4 || (t_next - t_curr)*J_x_norm > 1e1
+        if  expAlg || (opnorm(J_x_next-J_x_curr)/(J_x_norm) < 1e-4 && opnorm(J_p_next-J_p_curr)/(J_p_norm) < 1e-4)#|| (t_next - t_curr)*J_x_norm > 1e1
             tmp = (J_x_curr - diagm(1e-10*ones(N)))\J_p_curr;
             push!(S_PBS, exp((t_next - t_curr) * J_x_curr) * (S_PBS[end] + tmp) - tmp);
             push!(timeExpAlgorithm, t);
+            push!(timeExpAlgSteadyState, t);
+        elseif (t_next - t_curr)*J_x_norm > 1e1
+            tmp = (J_x_curr - diagm(1e-10*ones(N)))\J_p_curr;
+            push!(S_PBS, exp((t_next - t_curr) * J_x_curr) * (S_PBS[end] + tmp) - tmp);
+            push!(timeExpAlgorithm, t);
+            push!(timeExpAlgN_intBound, t);
         else
             max_delta_t = 1/(10*J_x_norm);
             n_int = ceil((t_next - t_curr)/max_delta_t);
@@ -117,14 +128,99 @@ function SensitivityMatrixByPBS(sol, p, expAlg)
 
         J_x_curr = J_x_next;
         J_p_curr = J_p_next;
+        J_x_norm = opnorm(J_x_curr);
+        J_p_norm = opnorm(J_p_curr)
         t_curr = t_next;
         x_curr = x_next;
 
     end
-    return S_PBS, timeExpAlgorithm, N_intervals
+    return S_PBS, timeExpAlgorithm, N_intervals, timeExpAlgSteadyState, timeExpAlgN_intBound
 end
 
 function transitionMatrixApproximation(J_prev, J_curr, t_prev, t_curr)
     N = size(J_prev,1);
     return Matrix(1.0*I,N,N) + (J_curr + J_prev)*(t_curr - t_prev)/2 +  ((J_curr + J_prev)*(t_curr - t_prev)^2/4) * J_curr;
+end
+
+
+
+# Exp algorithm with refinement (same refinement as in PBSR)
+function expAlgorithm_Refinement(f_ODE, x0, tspan, p)
+    prob = ODEProblem(f_ODE, x0, tspan, p);
+    start = time();
+    sol = solve(prob, CVODE_BDF(), abstol=abstolset, reltol=reltolset);
+    S_ExpR, timeStepsExp, N_intervals, timeExpAlgSteadyState, timeExpAlgN_intBound = SensitivityMatrixExpR(sol, p);
+    timeExp = time() - start;
+    return S_ExpR, timeExp, sol, timeStepsExp, N_intervals, timeExpAlgSteadyState, timeExpAlgN_intBound
+end
+
+function SensitivityMatrixExpR(sol, p)
+
+    T = length(sol.t);     #Number of time steps
+    N = length(sol.u[1]);  #Number of states
+    D = length(p);         #Number of parameters
+
+    S_PBS = Array{Float64,2}[];
+    push!(S_PBS, zeros(Float64, N, D));
+
+    timeExpAlgorithm = Int[];
+
+    timeExpAlgSteadyState = Int[];
+    timeExpAlgN_intBound = Int[];
+
+    N_intervals = [];
+
+    t_curr = sol.t[1];
+    x_curr = sol.u[1];
+    J_x_curr = Jacobian_x(x_curr, p, t_curr);
+    J_p_curr = Jacobian_p(x_curr, p, t_curr);
+    J_x_norm = opnorm(J_x_curr);
+    J_p_norm = opnorm(J_p_curr)
+
+    for t = 1:T-1
+        t_next = sol.t[t+1];
+        x_next = sol.u[t+1];
+        J_x_next = Jacobian_x(x_next, p, t_next);
+        J_p_next = Jacobian_p(x_next, p, t_next);
+
+        if  (opnorm(J_x_next-J_x_curr)/(J_x_norm) < 1e-4 && opnorm(J_p_next-J_p_curr)/(J_p_norm) < 1e-4)
+            tmp = (J_x_curr - diagm(1e-10*ones(N)))\J_p_curr;
+            push!(S_PBS, exp((t_next - t_curr) * J_x_curr) * (S_PBS[end] + tmp) - tmp);
+            push!(timeExpAlgorithm, t);
+            push!(timeExpAlgSteadyState, t);
+        elseif (t_next - t_curr)*J_x_norm > 1e1
+            tmp = (J_x_curr - diagm(1e-10*ones(N)))\J_p_curr;
+            push!(S_PBS, exp((t_next - t_curr) * J_x_curr) * (S_PBS[end] + tmp) - tmp);
+            push!(timeExpAlgorithm, t);
+            push!(timeExpAlgN_intBound, t);
+        else
+            max_delta_t = 1/(10*J_x_norm);
+            n_int = ceil((t_next - t_curr)/max_delta_t);
+            delta_t = (t_next-t_curr)/n_int;
+            J_x_i = J_x_curr;
+            J_p_i = J_p_curr;
+            S_i = copy(S_PBS[end]);
+            for i = 1:n_int
+                t_f = t_curr + i*delta_t;
+                x_f = sol(t_f)
+                J_x_f = Jacobian_x(x_f,p,t_f);
+                J_p_f = Jacobian_p(x_f,p,t_f);
+
+                tmp = (J_x_i - diagm(1e-10*ones(N)))\J_p_i;
+                S_i = exp(delta_t * J_x_i) * (S_i + tmp) - tmp
+
+                J_x_i = J_x_f;
+                J_p_i = J_p_f;
+            end
+            push!(N_intervals, n_int);
+            push!(S_PBS, S_i);
+        end
+
+        J_x_curr = J_x_next;
+        J_p_curr = J_p_next;
+        t_curr = t_next;
+        x_curr = x_next;
+
+    end
+    return S_PBS, timeExpAlgorithm, N_intervals, timeExpAlgSteadyState, timeExpAlgN_intBound
 end
