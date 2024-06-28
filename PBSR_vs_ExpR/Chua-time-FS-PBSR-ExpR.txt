@@ -1,0 +1,5 @@
+Chua's circuit model
+Average time of Forward Sensitibity (FS), PBS with refinement (PBSR), Exp algorithm with refienement (ExpR)
+FS 	0.00045563936233520506
+PBSR 	0.010738794803619384
+ExpR 	0.028416810035705568
