@@ -1,3 +1,6 @@
+# The most recent version of this model can be found at https://github.com/icpm-kth/uqsa,
+# where we continued the development of the biological models.
+
 #############
 # PKA model #
 #############
